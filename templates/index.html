@@ -1,24 +1,324 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-<title>Phishing Detection</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShieldScan | Phishing URL Detection</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-1: #07141d;
+      --bg-2: #0d2430;
+      --panel: rgba(12, 26, 36, 0.78);
+      --line: rgba(184, 236, 255, 0.28);
+      --text: #f4fbff;
+      --muted: #95b7c4;
+      --accent: #00d4ff;
+      --accent-2: #ff9f43;
+      --safe: #2ecc71;
+      --danger: #ff5f5f;
+      --shadow: 0 20px 55px rgba(0, 0, 0, 0.48);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: "Space Grotesk", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 20% 20%, rgba(0, 212, 255, 0.2), transparent 45%),
+        radial-gradient(circle at 80% 10%, rgba(255, 159, 67, 0.2), transparent 40%),
+        linear-gradient(120deg, var(--bg-1), var(--bg-2));
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    .noise {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.17;
+      background-image:
+        linear-gradient(90deg, transparent 50%, rgba(255, 255, 255, 0.03) 50%),
+        linear-gradient(transparent 50%, rgba(255, 255, 255, 0.03) 50%);
+      background-size: 3px 3px;
+      z-index: 0;
+    }
+
+    .glow {
+      position: absolute;
+      filter: blur(70px);
+      z-index: 0;
+      border-radius: 50%;
+      animation: drift 12s ease-in-out infinite alternate;
+    }
+
+    .glow.one {
+      width: 280px;
+      height: 280px;
+      background: rgba(0, 212, 255, 0.23);
+      left: -90px;
+      top: 18%;
+    }
+
+    .glow.two {
+      width: 340px;
+      height: 340px;
+      background: rgba(255, 159, 67, 0.2);
+      right: -120px;
+      bottom: 8%;
+      animation-delay: 1.5s;
+    }
+
+    .page {
+      width: min(960px, 92%);
+      margin: 0 auto;
+      padding: 42px 0 50px;
+      position: relative;
+      z-index: 1;
+      animation: riseIn 0.9s ease;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      background: rgba(13, 37, 50, 0.56);
+      color: #d3f3ff;
+      border-radius: 999px;
+      font-size: 12px;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+      padding: 8px 13px;
+      margin-bottom: 16px;
+    }
+
+    .badge::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent-2);
+      box-shadow: 0 0 10px var(--accent-2);
+    }
+
+    h1 {
+      font-family: "Bebas Neue", sans-serif;
+      font-size: clamp(56px, 11vw, 96px);
+      line-height: 0.95;
+      letter-spacing: 0.03em;
+      margin-bottom: 10px;
+      text-shadow: 0 10px 24px rgba(0, 0, 0, 0.42);
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: clamp(15px, 2vw, 19px);
+      line-height: 1.6;
+      max-width: 700px;
+      margin-bottom: 30px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      backdrop-filter: blur(10px);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 28px;
+      margin-bottom: 22px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      pointer-events: none;
+    }
+
+    .input-wrap {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+    }
+
+    input[type="url"],
+    input[type="text"] {
+      width: 100%;
+      border: 1px solid rgba(167, 234, 255, 0.32);
+      background: rgba(9, 22, 30, 0.88);
+      border-radius: 14px;
+      padding: 16px 18px;
+      color: #e8fbff;
+      font-size: 16px;
+      outline: none;
+      transition: border-color .2s ease, box-shadow .2s ease;
+    }
+
+    input::placeholder {
+      color: #7ea1b0;
+    }
+
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(0, 212, 255, 0.16);
+    }
+
+    button {
+      border: none;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #00d4ff, #ff9f43);
+      color: #04121a;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      padding: 0 24px;
+      min-height: 54px;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.28);
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 28px rgba(0, 0, 0, 0.38);
+    }
+
+    .tips {
+      margin-top: 13px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .result {
+      border-radius: 18px;
+      padding: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(9, 23, 33, 0.75);
+      animation: popIn 0.45s ease;
+    }
+
+    .result.safe {
+      border-color: rgba(46, 204, 113, 0.54);
+      box-shadow: 0 0 0 1px rgba(46, 204, 113, 0.2) inset;
+    }
+
+    .result.danger {
+      border-color: rgba(255, 95, 95, 0.58);
+      box-shadow: 0 0 0 1px rgba(255, 95, 95, 0.18) inset;
+    }
+
+    .result h2 {
+      font-size: 18px;
+      margin-bottom: 6px;
+    }
+
+    .result p {
+      color: #d9edf5;
+      line-height: 1.55;
+    }
+
+    .footer-note {
+      color: #88a8b6;
+      margin-top: 10px;
+      font-size: 13px;
+    }
+
+    @keyframes drift {
+      from { transform: translateY(0px) translateX(0px) scale(1); }
+      to   { transform: translateY(-18px) translateX(14px) scale(1.06); }
+    }
+
+    @keyframes riseIn {
+      from {
+        opacity: 0;
+        transform: translateY(24px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes popIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.98);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @media (max-width: 740px) {
+      .page {
+        padding-top: 26px;
+      }
+
+      .card {
+        padding: 20px;
+      }
+
+      .input-wrap {
+        grid-template-columns: 1fr;
+      }
+
+      button {
+        min-height: 52px;
+      }
+    }
+  </style>
 </head>
-
 <body>
+  <div class="noise"></div>
+  <div class="glow one"></div>
+  <div class="glow two"></div>
 
-<h2>Phishing URL Detection</h2>
+  <main class="page">
+    <div class="badge">AI Security Engine</div>
+    <h1>DON'T CLICK BLIND</h1>
+    <p class="subtitle">
+      Drop any URL and get an instant phishing risk scan. Built for fast checks before you trust a suspicious link.
+    </p>
 
-<form method="POST">
+    <section class="card">
+      <form method="POST">
+        <div class="input-wrap">
+          <input
+            type="url"
+            name="url"
+            placeholder="https://example.com/login"
+            required
+            autocomplete="off"
+          >
+          <button type="submit">Scan URL</button>
+        </div>
+      </form>
+      <p class="tips">Tip: Include the full address with <strong>http://</strong> or <strong>https://</strong>.</p>
+    </section>
 
-<input type="text" name="url" placeholder="Enter URL here" required>
-
-<button type="submit">Check</button>
-
-</form>
-
-<h3>{{ prediction }}</h3>
-
+    {% if prediction %}
+      {% set lower_pred = prediction|lower %}
+      <section class="card">
+        <div class="result {% if 'safe' in lower_pred %}safe{% else %}danger{% endif %}">
+          <h2>Scan Result</h2>
+          <p>{{ prediction }}</p>
+        </div>
+        <p class="footer-note">This output is model-based. For sensitive actions, still verify manually.</p>
+      </section>
+    {% endif %}
+  </main>
 </body>
-
 </html>
