@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Interview Room | {{ session.candidate_name }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Sora:wght@700;800&display=swap" rel="stylesheet">
+  <script defer src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3"></script>
+  <style>
+    :root {
+      --bg0: #061119;
+      --bg1: #0b1f2c;
+      --card: rgba(9, 23, 33, 0.86);
+      --line: rgba(171, 235, 255, 0.28);
+      --text: #f2fbff;
+      --muted: #96b8c7;
+      --cyan: #06d0ff;
+      --orange: #ffb048;
+      --green: #38da89;
+      --red: #ff6565;
+      --yellow: #ffd15f;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      color: var(--text);
+      font-family: "Space Grotesk", sans-serif;
+      background:
+        radial-gradient(circle at 13% 18%, rgba(6, 208, 255, 0.18), transparent 40%),
+        radial-gradient(circle at 86% 8%, rgba(255, 176, 72, 0.2), transparent 38%),
+        linear-gradient(125deg, var(--bg0), var(--bg1));
+      padding: 22px;
+    }
+
+    .top {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .title {
+      font-family: Sora, sans-serif;
+      font-size: clamp(1.4rem, 3.6vw, 2rem);
+      letter-spacing: .02em;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: .95rem;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 14px;
+      box-shadow: 0 18px 42px rgba(0,0,0,.38);
+    }
+
+    video {
+      width: 100%;
+      border-radius: 13px;
+      background: #041017;
+      border: 1px solid rgba(173,233,255,.25);
+      aspect-ratio: 16/9;
+      object-fit: cover;
+    }
+
+    .score-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .score {
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(173,233,255,.2);
+      background: rgba(8, 21, 30, 0.8);
+    }
+
+    .score .k { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+    .score .v { font-size: 1.4rem; font-weight: 700; margin-top: 4px; }
+
+    .alerts {
+      max-height: 210px;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 10px;
+      padding-right: 3px;
+    }
+
+    .alert {
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,.13);
+      background: rgba(8, 20, 29, .75);
+      padding: 9px 10px;
+      font-size: 13px;
+    }
+
+    .alert.high, .alert.critical { border-color: rgba(255,101,101,.5); }
+    .alert.medium { border-color: rgba(255,209,95,.45); }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .meter {
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(156, 220, 242, .2);
+      overflow: hidden;
+      margin-top: 5px;
+    }
+
+    .meter > span {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, var(--cyan), var(--orange));
+      transition: width .3s ease;
+    }
+
+    .tech-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    label { font-size: 12px; color: var(--muted); }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--cyan);
+    }
+
+    .btns { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+
+    button, a.btn {
+      border: none;
+      border-radius: 12px;
+      min-height: 44px;
+      padding: 0 14px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    button.primary { background: linear-gradient(135deg, var(--cyan), var(--orange)); color: #05141d; }
+    button.secondary, a.btn { background: rgba(10,26,38,.85); border: 1px solid rgba(165,231,255,.28); color: #e6f9ff; }
+
+    .tiny { color: var(--muted); font-size: 12px; }
+
+    @media (max-width: 1020px) {
+      .container { grid-template-columns: 1fr; }
+      body { padding: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div>
+      <h1 class="title">Live Interview Monitoring</h1>
+      <p class="meta">Candidate: <strong>{{ session.candidate_name }}</strong> | Role: <strong>{{ session.role }}</strong> | Session: <strong>{{ session.id }}</strong></p>
+    </div>
+    <a class="btn" href="/dashboard">Recruiter Dashboard</a>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <video id="video" autoplay playsinline muted></video>
+      <div class="score-grid">
+        <article class="score"><div class="k">Focus</div><div class="v" id="focusScore">--</div></article>
+        <article class="score"><div class="k">Confidence</div><div class="v" id="confidenceScore">--</div></article>
+        <article class="score"><div class="k">Integrity</div><div class="v" id="integrityScore">--</div></article>
+        <article class="score"><div class="k">Overall</div><div class="v" id="finalScore">--</div></article>
+      </div>
+
+      <div style="margin-top:10px;">
+        <div class="row"><span>Eye Contact</span><strong id="eyeContactText">--%</strong></div>
+        <div class="meter"><span id="eyeContactBar"></span></div>
+        <div class="row" style="margin-top:8px;"><span>Estimated Attention</span><strong id="attentionText">--%</strong></div>
+        <div class="meter"><span id="attentionBar"></span></div>
+        <div class="tiny" id="environmentText" style="margin-top:8px;">Environment: waiting for camera/mic permission</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3 style="margin-bottom:8px;">Real-Time Alerts</h3>
+      <div class="alerts" id="alerts"></div>
+
+      <h3 style="margin:14px 0 8px;">Technical Performance</h3>
+      <div class="tech-grid">
+        <div>
+          <label for="coding">Coding</label>
+          <input id="coding" type="range" min="0" max="100" value="65">
+        </div>
+        <div>
+          <label for="aptitude">Aptitude</label>
+          <input id="aptitude" type="range" min="0" max="100" value="65">
+        </div>
+        <div>
+          <label for="communication">Communication</label>
+          <input id="communication" type="range" min="0" max="100" value="65">
+        </div>
+        <div>
+          <label for="hr">HR Confidence</label>
+          <input id="hr" type="range" min="0" max="100" value="65">
+        </div>
+        <div>
+          <label for="react">React Skill</label>
+          <input id="react" type="range" min="0" max="100" value="65">
+        </div>
+      </div>
+
+      <div class="btns">
+        <button class="secondary" id="saveTech">Update Scores</button>
+        <button class="primary" id="endInterview">End Interview & Generate Report</button>
+      </div>
+      <p class="tiny" style="margin-top:8px;">Monitoring includes tab switch, copy-paste, face visibility, noise spikes, and optional phone detection.</p>
+    </section>
+  </main>
+
+  <script>
+    const SESSION_ID = "{{ session.id }}";
+    const api = (path, options = {}) => fetch(path, {
+      headers: { "Content-Type": "application/json" },
+      ...options
+    });
+
+    const state = {
+      lastFaceCenter: null,
+      noFaceSince: null,
+      eyeContact: 70,
+      attention: 70,
+      noise: 20,
+      lastNoiseSpike: 0,
+      lastLowVisibilityAlert: 0,
+      speechWords: 0,
+      fillerWords: 0,
+      phoneModel: null,
+      phoneLastCheck: 0,
+      lastVoiceAlert: 0,
+      speechAvailable: false,
+    };
+
+    const dom = {
+      video: document.getElementById("video"),
+      alerts: document.getElementById("alerts"),
+      focus: document.getElementById("focusScore"),
+      confidence: document.getElementById("confidenceScore"),
+      integrity: document.getElementById("integrityScore"),
+      final: document.getElementById("finalScore"),
+      eyeText: document.getElementById("eyeContactText"),
+      attentionText: document.getElementById("attentionText"),
+      eyeBar: document.getElementById("eyeContactBar"),
+      attentionBar: document.getElementById("attentionBar"),
+      environmentText: document.getElementById("environmentText"),
+      saveTech: document.getElementById("saveTech"),
+      endInterview: document.getElementById("endInterview"),
+      coding: document.getElementById("coding"),
+      aptitude: document.getElementById("aptitude"),
+      communication: document.getElementById("communication"),
+      hr: document.getElementById("hr"),
+      react: document.getElementById("react"),
+    };
+
+    function addAlertLocal(message, severity = "medium") {
+      const el = document.createElement("div");
+      el.className = `alert ${severity}`;
+      const time = new Date().toLocaleTimeString();
+      el.textContent = `[${time}] ${message}`;
+      dom.alerts.prepend(el);
+      while (dom.alerts.childElementCount > 14) dom.alerts.lastChild.remove();
+    }
+
+    async function postEvent(type, payload = {}) {
+      try {
+        const res = await api(`/api/session/${SESSION_ID}/event`, {
+          method: "POST",
+          body: JSON.stringify({ type, payload })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          renderScores(data.scores);
+          renderServerAlerts(data.recent_alerts || []);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function renderScores(scores) {
+      dom.focus.textContent = `${scores.focus_score}%`;
+      dom.confidence.textContent = `${scores.confidence_score}%`;
+      dom.integrity.textContent = `${scores.integrity_score}%`;
+      dom.final.textContent = `${scores.final_score}%`;
+      dom.eyeText.textContent = `${scores.eye_contact}%`;
+      dom.attentionText.textContent = `${Math.round(state.attention)}%`;
+      dom.eyeBar.style.width = `${scores.eye_contact}%`;
+      dom.attentionBar.style.width = `${Math.round(state.attention)}%`;
+      dom.environmentText.textContent = `Noise: ${scores.noise_level} | Attention: ${scores.attention_level} | Emotion: ${scores.emotion_state}`;
+    }
+
+    function renderServerAlerts(alerts) {
+      for (const item of alerts) {
+        if (!item || !item.message) continue;
+      }
+    }
+
+    function detectCopyPasteAndTabSwitch() {
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          postEvent("tab_switch", {});
+          addAlertLocal("Candidate switched tab/window", "high");
+        }
+      });
+
+      const copyHandler = () => {
+        postEvent("copy_paste", {});
+        addAlertLocal("Copy-paste interaction detected", "high");
+      };
+
+      window.addEventListener("copy", copyHandler);
+      window.addEventListener("paste", copyHandler);
+      window.addEventListener("cut", copyHandler);
+      window.addEventListener("keydown", (event) => {
+        if ((event.ctrlKey || event.metaKey) && ["c", "v", "x"].includes(event.key.toLowerCase())) {
+          copyHandler();
+        }
+      });
+    }
+
+    function scoreFromFaceBox(face, width, height) {
+      const centerX = face.boundingBox.x + face.boundingBox.width / 2;
+      const centerY = face.boundingBox.y + face.boundingBox.height / 2;
+      const dx = Math.abs((centerX - width / 2) / (width / 2));
+      const dy = Math.abs((centerY - height / 2) / (height / 2));
+      const centeredPenalty = (dx + dy) * 42;
+      return Math.max(20, Math.min(100, 92 - centeredPenalty));
+    }
+
+    async function detectPhoneFromFrame() {
+      const now = Date.now();
+      if (!state.phoneModel || now - state.phoneLastCheck < 6000) return;
+      state.phoneLastCheck = now;
+
+      try {
+        const predictions = await state.phoneModel.detect(dom.video);
+        const foundPhone = predictions.some((p) => p.class === "cell phone" && p.score > 0.55);
+        if (foundPhone) {
+          postEvent("mobile_phone", {});
+          addAlertLocal("Mobile phone usage suspected", "critical");
+        }
+      } catch (e) {
+        console.warn("Phone detection skipped", e);
+      }
+    }
+
+    function startSpeechAnalysis() {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) return;
+      state.speechAvailable = true;
+
+      const recognition = new SR();
+      recognition.lang = "en-US";
+      recognition.continuous = true;
+      recognition.interimResults = true;
+
+      const fillers = new Set(["um", "uh", "like", "actually", "basically", "you know"]);
+
+      recognition.onresult = (event) => {
+        let words = 0;
+        let filler = 0;
+
+        for (let i = event.resultIndex; i < event.results.length; i += 1) {
+          const transcript = event.results[i][0].transcript.toLowerCase();
+          const tokens = transcript.split(/\s+/).filter(Boolean);
+          words += tokens.length;
+          for (const token of tokens) {
+            if (fillers.has(token)) filler += 1;
+          }
+        }
+
+        state.speechWords += words;
+        state.fillerWords += filler;
+
+        const fillerRate = state.speechWords > 0 ? (state.fillerWords / state.speechWords) : 0;
+        const clarity = Math.max(35, 100 - fillerRate * 180);
+        const fluency = Math.max(30, 100 - fillerRate * 140);
+
+        postEvent("speech_metrics", {
+          filler_words: filler,
+          words_spoken: words,
+          clarity_score: clarity,
+          fluency_score: fluency,
+        });
+      };
+
+      recognition.onend = () => {
+        try { recognition.start(); } catch (e) { console.warn(e); }
+      };
+
+      try { recognition.start(); } catch (e) { console.warn(e); }
+    }
+
+    async function startAudioMonitor(stream) {
+      try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioContext.createMediaStreamSource(stream);
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 1024;
+        source.connect(analyser);
+
+        const buffer = new Uint8Array(analyser.fftSize);
+
+        setInterval(() => {
+          analyser.getByteTimeDomainData(buffer);
+          let sum = 0;
+          for (const v of buffer) {
+            const normalized = (v - 128) / 128;
+            sum += normalized * normalized;
+          }
+          const rms = Math.sqrt(sum / buffer.length);
+          const noiseLevel = Math.min(100, rms * 340);
+          state.noise = noiseLevel;
+
+          if (noiseLevel > 62 && Date.now() - state.lastNoiseSpike > 8000) {
+            state.lastNoiseSpike = Date.now();
+            postEvent("suspicious_sound", { noise: noiseLevel });
+            addAlertLocal("Suspicious sound spike detected", "medium");
+          }
+
+          if (noiseLevel > 70 && Date.now() - state.lastVoiceAlert > 12000) {
+            state.lastVoiceAlert = Date.now();
+            postEvent("other_voice", { noise: noiseLevel });
+            addAlertLocal("Other voice activity suspected", "high");
+          }
+        }, 2000);
+      } catch (err) {
+        console.warn("Audio monitor unavailable", err);
+      }
+    }
+
+    function averageBrightness() {
+      const canvas = document.createElement("canvas");
+      const width = 240;
+      const height = 135;
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      ctx.drawImage(dom.video, 0, 0, width, height);
+      const data = ctx.getImageData(0, 0, width, height).data;
+
+      let total = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        total += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+      }
+      return total / (data.length / 4);
+    }
+
+    async function monitorVideo() {
+      let faceDetector = null;
+      if ("FaceDetector" in window) {
+        faceDetector = new FaceDetector({ fastMode: true, maxDetectedFaces: 3 });
+      }
+
+      if (window.cocoSsd) {
+        try {
+          state.phoneModel = await cocoSsd.load();
+        } catch (err) {
+          console.warn("Phone model not loaded", err);
+        }
+      }
+
+      setInterval(async () => {
+        if (!dom.video.videoWidth) return;
+
+        let faces = [];
+        if (faceDetector) {
+          try {
+            faces = await faceDetector.detect(dom.video);
+          } catch (e) {
+            faces = [];
+          }
+        }
+
+        const brightness = averageBrightness();
+        if (brightness < 45 && Date.now() - state.lastLowVisibilityAlert > 10000) {
+          state.lastLowVisibilityAlert = Date.now();
+          postEvent("low_visibility", { brightness });
+          addAlertLocal("Low visibility / dark room detected", "medium");
+        }
+
+        if (faces.length === 0) {
+          if (!state.noFaceSince) state.noFaceSince = Date.now();
+          state.eyeContact = Math.max(25, state.eyeContact - 8);
+          state.attention = Math.max(20, state.attention - 10);
+
+          if (Date.now() - state.noFaceSince > 3000) {
+            postEvent("left_camera", {});
+            addAlertLocal("Candidate left camera frame", "high");
+            state.noFaceSince = Date.now() + 1500;
+          }
+        } else {
+          state.noFaceSince = null;
+
+          if (faces.length > 1) {
+            postEvent("multiple_people", { count: faces.length });
+            addAlertLocal("Multiple people detected", "critical");
+          }
+
+          const score = scoreFromFaceBox(faces[0], dom.video.videoWidth, dom.video.videoHeight);
+          if (state.lastFaceCenter) {
+            const currX = faces[0].boundingBox.x + faces[0].boundingBox.width / 2;
+            const move = Math.abs(currX - state.lastFaceCenter);
+            if (move > dom.video.videoWidth * 0.22) {
+              state.attention = Math.max(30, state.attention - 8);
+              addAlertLocal("Frequent head movement detected", "medium");
+            }
+          }
+          state.lastFaceCenter = faces[0].boundingBox.x + faces[0].boundingBox.width / 2;
+
+          state.eyeContact = Math.round((state.eyeContact * 0.5) + (score * 0.5));
+          state.attention = Math.round((state.attention * 0.65) + (score * 0.35));
+        }
+
+        await detectPhoneFromFrame();
+
+        postEvent("attention_sample", {
+          eye_contact: state.eyeContact,
+          attention_level: state.attention,
+          noise_level: state.noise,
+        });
+      }, 2200);
+    }
+
+    async function startMedia() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        dom.video.srcObject = stream;
+        await startAudioMonitor(stream);
+        await monitorVideo();
+        startSpeechAnalysis();
+      } catch (err) {
+        addAlertLocal("Camera/Mic permission denied. Monitoring is limited.", "high");
+        console.error(err);
+      }
+    }
+
+    async function updateTechnicalScores() {
+      const body = {
+        coding_score: Number(dom.coding.value),
+        aptitude_score: Number(dom.aptitude.value),
+        communication_score: Number(dom.communication.value),
+        hr_confidence: Number(dom.hr.value),
+        react_score: Number(dom.react.value),
+      };
+
+      try {
+        const res = await api(`/api/session/${SESSION_ID}/technical`, {
+          method: "POST",
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (data.ok) {
+          renderScores(data.scores);
+          addAlertLocal("Technical performance scores updated", "medium");
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function endInterview() {
+      const confirmed = confirm("End interview and generate AI report?");
+      if (!confirmed) return;
+
+      try {
+        const res = await api(`/api/session/${SESSION_ID}/complete`, { method: "POST" });
+        const data = await res.json();
+        if (data.ok) {
+          window.location.href = data.report_url;
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    dom.saveTech.addEventListener("click", updateTechnicalScores);
+    dom.endInterview.addEventListener("click", endInterview);
+
+    detectCopyPasteAndTabSwitch();
+    startMedia();
+
+    setInterval(async () => {
+      try {
+        const res = await api(`/api/session/${SESSION_ID}/live`);
+        const data = await res.json();
+        if (data.ok) {
+          renderScores(data.scores);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }, 5000);
+  </script>
+</body>
+</html>

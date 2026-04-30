@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recruiter Dashboard | PulseHire AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@700;800&family=Manrope:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #08131c;
+      --bg2: #0f2633;
+      --card: rgba(9, 24, 34, 0.86);
+      --line: rgba(169, 236, 255, .25);
+      --text: #f3fbff;
+      --muted: #9bbaca;
+      --cyan: #08d1ff;
+      --amber: #ffb24b;
+      --green: #41df8f;
+      --red: #ff6a6a;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      font-family: Manrope, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 16%, rgba(8,209,255,.18), transparent 42%),
+        radial-gradient(circle at 86% 8%, rgba(255,178,75,.2), transparent 40%),
+        linear-gradient(126deg, var(--bg), var(--bg2));
+      padding: 22px;
+    }
+
+    .wrap { width: min(1120px, 95%); margin: 0 auto; }
+
+    .head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    h1 { font-family: Sora, sans-serif; font-size: clamp(1.4rem, 3.8vw, 2.1rem); }
+
+    .sub { color: var(--muted); }
+
+    a.btn {
+      color: #e7f8ff;
+      text-decoration: none;
+      border-radius: 12px;
+      border: 1px solid rgba(174,238,255,.3);
+      background: rgba(10, 27, 38, .82);
+      padding: 10px 14px;
+      font-weight: 700;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      background: var(--card);
+      border-radius: 16px;
+      box-shadow: 0 18px 38px rgba(0,0,0,.35);
+      overflow: hidden;
+    }
+
+    table { width: 100%; border-collapse: collapse; }
+
+    th, td { text-align: left; padding: 12px; border-bottom: 1px solid rgba(171,236,255,.16); }
+
+    th {
+      font-size: 12px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: #c6e8f6;
+      background: rgba(8, 21, 31, .9);
+    }
+
+    td { color: #def1fa; font-size: 14px; }
+
+    .live { color: var(--green); font-weight: 700; }
+    .done { color: var(--amber); font-weight: 700; }
+
+    .pill {
+      display: inline-flex;
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid rgba(255,255,255,.2);
+    }
+
+    .good { color: var(--green); border-color: rgba(65,223,143,.5); }
+    .warn { color: #ffd469; border-color: rgba(255,212,105,.45); }
+    .bad { color: var(--red); border-color: rgba(255,106,106,.45); }
+
+    .empty {
+      border: 1px dashed rgba(169,236,255,.3);
+      border-radius: 16px;
+      padding: 30px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    @media (max-width: 860px) {
+      body { padding: 12px; }
+      .card { overflow-x: auto; }
+      table { min-width: 760px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header class="head">
+      <div>
+        <h1>Recruiter Intelligence Dashboard</h1>
+        <p class="sub">Rank candidates by final AI score and inspect integrity + behavior risk signals.</p>
+      </div>
+      <a href="/" class="btn">Start New Interview</a>
+    </header>
+
+    {% if sessions %}
+      <section class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Candidate</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Final</th>
+              <th>Focus</th>
+              <th>Integrity</th>
+              <th>High Flags</th>
+              <th>Report</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in sessions %}
+              <tr>
+                <td>#{{ loop.index }}</td>
+                <td>{{ s.candidate_name }}</td>
+                <td>{{ s.role }}</td>
+                <td>
+                  {% if s.status == "Live" %}
+                    <span class="live">Live</span>
+                  {% else %}
+                    <span class="done">Completed</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if s.final_score >= 80 %}
+                    <span class="pill good">{{ s.final_score }}%</span>
+                  {% elif s.final_score >= 60 %}
+                    <span class="pill warn">{{ s.final_score }}%</span>
+                  {% else %}
+                    <span class="pill bad">{{ s.final_score }}%</span>
+                  {% endif %}
+                </td>
+                <td>{{ s.focus_score }}%</td>
+                <td>{{ s.integrity_score }}%</td>
+                <td>{{ s.flags }}</td>
+                <td><a class="btn" href="/report/{{ s.id }}">Open</a></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+    {% else %}
+      <section class="empty">
+        No interviews yet. Start one from the home page to see live analytics and rankings here.
+      </section>
+    {% endif %}
+  </main>
+</body>
+</html>
