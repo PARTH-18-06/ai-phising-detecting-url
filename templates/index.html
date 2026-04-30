@@ -3,233 +3,322 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PulseHire AI | Interview Intelligence</title>
+  <title>ShieldScan | Phishing URL Detection</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-ink: #071019;
-      --bg-deep: #0e2230;
-      --card: rgba(8, 21, 31, 0.78);
-      --line: rgba(136, 222, 255, 0.25);
+      --bg-1: #07141d;
+      --bg-2: #0d2430;
+      --panel: rgba(12, 26, 36, 0.78);
+      --line: rgba(184, 236, 255, 0.28);
       --text: #f4fbff;
-      --muted: #9bbdca;
-      --cyan: #1ed5ff;
-      --amber: #ffb14a;
-      --green: #3ddd89;
-      --danger: #ff6666;
+      --muted: #95b7c4;
+      --accent: #00d4ff;
+      --accent-2: #ff9f43;
+      --safe: #2ecc71;
+      --danger: #ff5f5f;
+      --shadow: 0 20px 55px rgba(0, 0, 0, 0.48);
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     body {
       min-height: 100vh;
+      font-family: "Space Grotesk", sans-serif;
       color: var(--text);
-      font-family: Manrope, sans-serif;
       background:
-        radial-gradient(circle at 15% 20%, rgba(30, 213, 255, 0.2), transparent 42%),
-        radial-gradient(circle at 82% 12%, rgba(255, 177, 74, 0.2), transparent 40%),
-        linear-gradient(120deg, var(--bg-ink), var(--bg-deep));
+        radial-gradient(circle at 20% 20%, rgba(0, 212, 255, 0.2), transparent 45%),
+        radial-gradient(circle at 80% 10%, rgba(255, 159, 67, 0.2), transparent 40%),
+        linear-gradient(120deg, var(--bg-1), var(--bg-2));
       overflow-x: hidden;
+      position: relative;
     }
 
-    .wrap {
-      width: min(1020px, 92%);
+    .noise {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.17;
+      background-image:
+        linear-gradient(90deg, transparent 50%, rgba(255, 255, 255, 0.03) 50%),
+        linear-gradient(transparent 50%, rgba(255, 255, 255, 0.03) 50%);
+      background-size: 3px 3px;
+      z-index: 0;
+    }
+
+    .glow {
+      position: absolute;
+      filter: blur(70px);
+      z-index: 0;
+      border-radius: 50%;
+      animation: drift 12s ease-in-out infinite alternate;
+    }
+
+    .glow.one {
+      width: 280px;
+      height: 280px;
+      background: rgba(0, 212, 255, 0.23);
+      left: -90px;
+      top: 18%;
+    }
+
+    .glow.two {
+      width: 340px;
+      height: 340px;
+      background: rgba(255, 159, 67, 0.2);
+      right: -120px;
+      bottom: 8%;
+      animation-delay: 1.5s;
+    }
+
+    .page {
+      width: min(960px, 92%);
       margin: 0 auto;
-      padding: 42px 0 54px;
-      animation: intro .8s ease;
+      padding: 42px 0 50px;
+      position: relative;
+      z-index: 1;
+      animation: riseIn 0.9s ease;
     }
 
-    .chip {
+    .badge {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      border-radius: 999px;
       border: 1px solid var(--line);
-      background: rgba(9, 28, 40, 0.65);
-      padding: 8px 14px;
+      background: rgba(13, 37, 50, 0.56);
+      color: #d3f3ff;
+      border-radius: 999px;
       font-size: 12px;
-      letter-spacing: .1em;
+      letter-spacing: 0.11em;
       text-transform: uppercase;
-      color: #d4f4ff;
+      padding: 8px 13px;
       margin-bottom: 16px;
     }
 
-    .chip::before {
+    .badge::before {
       content: "";
-      width: 8px;
-      height: 8px;
+      width: 7px;
+      height: 7px;
       border-radius: 50%;
-      background: var(--amber);
-      box-shadow: 0 0 10px var(--amber);
+      background: var(--accent-2);
+      box-shadow: 0 0 10px var(--accent-2);
     }
 
     h1 {
-      font-family: "Archivo Black", sans-serif;
-      font-size: clamp(2.3rem, 7vw, 4.8rem);
-      line-height: .95;
-      letter-spacing: .02em;
-      text-transform: uppercase;
-      max-width: 880px;
-      margin-bottom: 14px;
+      font-family: "Bebas Neue", sans-serif;
+      font-size: clamp(56px, 11vw, 96px);
+      line-height: 0.95;
+      letter-spacing: 0.03em;
+      margin-bottom: 10px;
+      text-shadow: 0 10px 24px rgba(0, 0, 0, 0.42);
     }
 
-    .sub {
+    .subtitle {
       color: var(--muted);
-      font-size: clamp(1rem, 2vw, 1.15rem);
-      line-height: 1.65;
-      max-width: 760px;
-      margin-bottom: 28px;
+      font-size: clamp(15px, 2vw, 19px);
+      line-height: 1.6;
+      max-width: 700px;
+      margin-bottom: 30px;
     }
 
     .card {
       border: 1px solid var(--line);
-      background: var(--card);
+      background: var(--panel);
       backdrop-filter: blur(10px);
       border-radius: 24px;
-      padding: 26px;
-      box-shadow: 0 24px 52px rgba(0,0,0,.42);
+      box-shadow: var(--shadow);
+      padding: 28px;
       margin-bottom: 22px;
+      position: relative;
+      overflow: hidden;
     }
 
-    .grid {
+    .card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      pointer-events: none;
+    }
+
+    .input-wrap {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
-
-    label {
-      display: block;
-      font-size: 13px;
-      color: #caebf8;
-      margin-bottom: 7px;
-      letter-spacing: .02em;
-    }
-
-    input, select {
-      width: 100%;
-      border: 1px solid rgba(164, 229, 255, .34);
-      background: rgba(9, 22, 32, .86);
-      color: #eafcff;
-      border-radius: 14px;
-      padding: 14px 14px;
-      font-size: 15px;
-      outline: none;
-    }
-
-    input:focus, select:focus {
-      border-color: var(--cyan);
-      box-shadow: 0 0 0 4px rgba(30, 213, 255, .16);
-    }
-
-    .btn-row {
-      display: flex;
+      grid-template-columns: 1fr auto;
       gap: 12px;
-      margin-top: 16px;
-      flex-wrap: wrap;
     }
 
-    button, .link {
-      border: none;
+    input[type="url"],
+    input[type="text"] {
+      width: 100%;
+      border: 1px solid rgba(167, 234, 255, 0.32);
+      background: rgba(9, 22, 30, 0.88);
       border-radius: 14px;
-      cursor: pointer;
-      font-weight: 800;
-      letter-spacing: .01em;
-      font-size: 15px;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 50px;
-      padding: 0 20px;
+      padding: 16px 18px;
+      color: #e8fbff;
+      font-size: 16px;
+      outline: none;
+      transition: border-color .2s ease, box-shadow .2s ease;
+    }
+
+    input::placeholder {
+      color: #7ea1b0;
+    }
+
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(0, 212, 255, 0.16);
     }
 
     button {
-      background: linear-gradient(135deg, var(--cyan), var(--amber));
-      color: #04121a;
-    }
-
-    .link {
-      border: 1px solid rgba(170, 233, 255, .3);
-      color: #e8faff;
-      background: rgba(11, 28, 40, .8);
-    }
-
-    .feature-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
-    }
-
-    .mini {
-      border: 1px solid rgba(170,233,255,.22);
+      border: none;
       border-radius: 14px;
-      padding: 13px;
-      background: rgba(8, 24, 34, .65);
+      background: linear-gradient(135deg, #00d4ff, #ff9f43);
+      color: #04121a;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      padding: 0 24px;
+      min-height: 54px;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.28);
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 28px rgba(0, 0, 0, 0.38);
+    }
+
+    .tips {
+      margin-top: 13px;
+      color: var(--muted);
       font-size: 13px;
-      color: #b8d9e7;
     }
 
-    .mini strong {
-      color: #f5fdff;
-      display: block;
-      margin-bottom: 5px;
-      font-size: 14px;
+    .result {
+      border-radius: 18px;
+      padding: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(9, 23, 33, 0.75);
+      animation: popIn 0.45s ease;
     }
 
-    @keyframes intro {
-      from { opacity: 0; transform: translateY(18px); }
-      to { opacity: 1; transform: translateY(0); }
+    .result.safe {
+      border-color: rgba(46, 204, 113, 0.54);
+      box-shadow: 0 0 0 1px rgba(46, 204, 113, 0.2) inset;
     }
 
-    @media (max-width: 860px) {
-      .grid, .feature-grid { grid-template-columns: 1fr; }
+    .result.danger {
+      border-color: rgba(255, 95, 95, 0.58);
+      box-shadow: 0 0 0 1px rgba(255, 95, 95, 0.18) inset;
+    }
+
+    .result h2 {
+      font-size: 18px;
+      margin-bottom: 6px;
+    }
+
+    .result p {
+      color: #d9edf5;
+      line-height: 1.55;
+    }
+
+    .footer-note {
+      color: #88a8b6;
+      margin-top: 10px;
+      font-size: 13px;
+    }
+
+    @keyframes drift {
+      from { transform: translateY(0px) translateX(0px) scale(1); }
+      to   { transform: translateY(-18px) translateX(14px) scale(1.06); }
+    }
+
+    @keyframes riseIn {
+      from {
+        opacity: 0;
+        transform: translateY(24px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes popIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.98);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @media (max-width: 740px) {
+      .page {
+        padding-top: 26px;
+      }
+
+      .card {
+        padding: 20px;
+      }
+
+      .input-wrap {
+        grid-template-columns: 1fr;
+      }
+
+      button {
+        min-height: 52px;
+      }
     }
   </style>
 </head>
 <body>
-  <main class="wrap">
-    <div class="chip">AI Interview Monitoring Suite</div>
-    <h1>Build Trustworthy Hiring with Live AI Proctoring</h1>
-    <p class="sub">
-      PulseHire AI monitors candidate behavior, attention, audio environment, and interview performance in real time.
-      It generates integrity analytics, technical insights, recruiter-ready summaries, and personalized learning recommendations.
+  <div class="noise"></div>
+  <div class="glow one"></div>
+  <div class="glow two"></div>
+
+  <main class="page">
+    <div class="badge">AI Security Engine</div>
+    <h1>DON'T CLICK BLIND</h1>
+    <p class="subtitle">
+      Drop any URL and get an instant phishing risk scan. Built for fast checks before you trust a suspicious link.
     </p>
 
     <section class="card">
-      <form method="POST" action="/start">
-        <div class="grid">
-          <div>
-            <label for="candidate_name">Candidate Name</label>
-            <input id="candidate_name" name="candidate_name" placeholder="Enter candidate full name" required>
-          </div>
-          <div>
-            <label for="role">Role Applied For</label>
-            <select id="role" name="role" required>
-              <option value="Software Engineer">Software Engineer</option>
-              <option value="Frontend Engineer">Frontend Engineer</option>
-              <option value="Backend Engineer">Backend Engineer</option>
-              <option value="Data Analyst">Data Analyst</option>
-              <option value="Product Manager">Product Manager</option>
-            </select>
-          </div>
-        </div>
-        <div class="btn-row">
-          <button type="submit">Start Live Interview</button>
-          <a class="link" href="/dashboard">Open Recruiter Dashboard</a>
+      <form method="POST">
+        <div class="input-wrap">
+          <input
+            type="url"
+            name="url"
+            placeholder="https://example.com/login"
+            required
+            autocomplete="off"
+          >
+          <button type="submit">Scan URL</button>
         </div>
       </form>
+      <p class="tips">Tip: Include the full address with <strong>http://</strong> or <strong>https://</strong>.</p>
     </section>
 
-    <section class="feature-grid">
-      <article class="mini"><strong>Live Integrity Monitoring</strong>Eye visibility, tab switches, multiple people, copy-paste, phone alerts.</article>
-      <article class="mini"><strong>AI Scoring Engine</strong>Focus, confidence, integrity, and composite ranking for fast decisions.</article>
-      <article class="mini"><strong>Performance Breakdown</strong>Coding, aptitude, communication, HR confidence, speech quality insights.</article>
-      <article class="mini"><strong>Emotion Signals</strong>Stress and confidence estimation from real-time behavior patterns.</article>
-      <article class="mini"><strong>Environment Intelligence</strong>Noise classification, suspicious sounds, and low-visibility detection.</article>
-      <article class="mini"><strong>Learning Recommendations</strong>Role-specific upskilling suggestions for weak skills and next-step plans.</article>
-    </section>
+    {% if prediction %}
+      {% set lower_pred = prediction|lower %}
+      <section class="card">
+        <div class="result {% if 'safe' in lower_pred %}safe{% else %}danger{% endif %}">
+          <h2>Scan Result</h2>
+          <p>{{ prediction }}</p>
+        </div>
+        <p class="footer-note">This output is model-based. For sensitive actions, still verify manually.</p>
+      </section>
+    {% endif %}
   </main>
 </body>
 </html>
