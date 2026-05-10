@@ -10,6 +10,7 @@ from feature_extractor import FEATURE_NAMES, extract_features, features_from_row
 
 
 SAFE_URLS = [
+    "https://infinitehomepage.com/",
     "https://www.wikipedia.org/",
     "https://www.google.com/",
     "https://github.com/",
