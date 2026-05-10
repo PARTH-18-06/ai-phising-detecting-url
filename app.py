@@ -3,67 +3,58 @@ import pickle
 import numpy as np
 from urllib.parse import urlparse
 from dataset import TRUSTED
+from feature_extractor import extract_features
 
-# Load trained model
+
+# Load trained model generated from phishing_urls.csv
 model = pickle.load(open("model/phishing_model.pkl", "rb"))
 
 app = Flask(__name__)
 
-# Function to extract features from URL
-def extract_features(url):
+PREDICTION_LABELS = {
+    0: "Phishing Website",
+    1: "Safe Website",
+}
 
-    features = []
 
-    features.append(len(url))                          # url_length
-    features.append(1 if url.startswith("http") else 0) # valid_url
-    features.append(url.count("@"))                    # at_symbol
-    features.append(0)                                 # sensitive_words_count
-    features.append(url.count("/"))                    # path_length
-    features.append(1 if "https" in url else 0)        # isHttps
-    features.append(url.count("."))                    # nb_dots
-    features.append(url.count("-"))                    # nb_hyphens
-    features.append(url.count("&"))                    # nb_and
-    features.append(url.count("|"))                    # nb_or
-    features.append(url.count("www"))                  # nb_www
-    features.append(url.count(".com"))                 # nb_com
-    features.append(url.count("_"))                    # nb_underscore
+def normalize_domain(value):
+    parsed = urlparse(value if "://" in value else f"https://{value}")
+    domain = parsed.netloc.lower().split(":")[0]
 
-    return features
+    if domain.startswith("www."):
+        domain = domain[4:]
+
+    return domain
+
+
+TRUSTED_DOMAINS = {normalize_domain(site) for site in TRUSTED}
+
+
+def is_trusted_url(url):
+    domain = normalize_domain(url)
+    return any(domain == trusted or domain.endswith(f".{trusted}") for trusted in TRUSTED_DOMAINS)
 
 
 @app.route("/", methods=["GET", "POST"])
 def home():
-
     prediction = ""
 
     if request.method == "POST":
-
         url = request.form["url"]
+        features = np.array(extract_features(url)).reshape(1, -1)
 
-        # 🔒 Extract domain for trusted check
-        domain = urlparse(url).netloc
+        result = int(model.predict(features)[0])
+        probability = model.predict_proba(features)[0]
 
-        trusted = TRUSTED
-       
-        if any(site in domain for site in trusted):
-            prediction = "✅ Safe Website"
+        phishing_index = list(model.classes_).index(0)
+        phishing_risk = round(float(probability[phishing_index]) * 100, 2)
 
-        else:
-            # Extract features
-            features = extract_features(url)
-            features = np.array(features).reshape(1, -1)
-            # Model prediction
-            result = model.predict(features)
+        label = PREDICTION_LABELS.get(result, "Unknown Website")
+        if is_trusted_url(url):
+            label = "Safe Website"
+            phishing_risk = 0
 
-            # Probability (better accuracy)
-            prob = model.predict_proba(features)
-            phishing_prob = prob[0][1]
-
-           # if phishing_prob > 0.6:
-            if any(site not in domain for site in trusted):
-                prediction = f"⚠️ Phishing Website (Risk: {round(phishing_prob*100,2)}%)"
-            else:
-                prediction = f"✅ Safe Website (Risk: {round(phishing_prob*100,2)}%)"
+        prediction = f"{label} (Risk: {phishing_risk}%)"
 
     return render_template("index.html", prediction=prediction)
 
