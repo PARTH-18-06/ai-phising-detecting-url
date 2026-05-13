@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShieldScan | Agent Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-1: #07141d;
+      --bg-2: #0d2430;
+      --panel: rgba(12, 26, 36, 0.78);
+      --line: rgba(184, 236, 255, 0.28);
+      --text: #f4fbff;
+      --muted: #95b7c4;
+      --accent: #00d4ff;
+      --shadow: 0 20px 55px rgba(0, 0, 0, 0.48);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: "Space Grotesk", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 20% 20%, rgba(0, 212, 255, 0.2), transparent 45%),
+        linear-gradient(120deg, var(--bg-1), var(--bg-2));
+    }
+
+    .page {
+      width: min(520px, 92%);
+      margin: 0 auto;
+      padding: 52px 0;
+    }
+
+    h1 {
+      font-family: "Bebas Neue", sans-serif;
+      font-size: clamp(52px, 11vw, 84px);
+      letter-spacing: 0.03em;
+      line-height: 0.95;
+      margin-bottom: 12px;
+    }
+
+    .subtitle,
+    .error,
+    .switch {
+      color: var(--muted);
+      line-height: 1.55;
+      margin-bottom: 24px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 26px;
+    }
+
+    label {
+      display: block;
+      color: #d3f3ff;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    input {
+      width: 100%;
+      border: 1px solid rgba(167, 234, 255, 0.32);
+      background: rgba(9, 22, 30, 0.88);
+      border-radius: 12px;
+      color: #e8fbff;
+      font: inherit;
+      margin-bottom: 16px;
+      padding: 13px 14px;
+    }
+
+    button {
+      width: 100%;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #00d4ff, #ff9f43);
+      color: #04121a;
+      cursor: pointer;
+      font-weight: 700;
+      min-height: 50px;
+      padding: 0 20px;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .error {
+      color: #ffd0d0;
+      margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <h1>Agent Login</h1>
+    <p class="subtitle">Agents can review alert-zone URLs and approve the final output for users.</p>
+
+    <section class="card">
+      <form method="POST">
+        <label for="username">Agent username</label>
+        <input id="username" name="username" type="text" placeholder="agent" required>
+
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" placeholder="password" required>
+
+        <button type="submit">Open Agent Monitor</button>
+      </form>
+
+      {% if error %}
+        <p class="error">{{ error }}</p>
+      {% endif %}
+
+      <p class="switch"><a href="/login">User login</a></p>
+    </section>
+  </main>
+</body>
+</html>

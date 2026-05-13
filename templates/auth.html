@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShieldScan | Account</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-1: #07141d;
+      --bg-2: #0d2430;
+      --panel: rgba(12, 26, 36, 0.78);
+      --line: rgba(184, 236, 255, 0.28);
+      --text: #f4fbff;
+      --muted: #95b7c4;
+      --accent: #00d4ff;
+      --danger: #ff5f5f;
+      --shadow: 0 20px 55px rgba(0, 0, 0, 0.48);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: "Space Grotesk", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 18% 18%, rgba(0, 212, 255, 0.2), transparent 44%),
+        linear-gradient(120deg, var(--bg-1), var(--bg-2));
+    }
+
+    .page {
+      width: min(520px, 92%);
+      margin: 0 auto;
+      padding: 52px 0;
+    }
+
+    h1 {
+      font-family: "Bebas Neue", sans-serif;
+      font-size: clamp(52px, 11vw, 84px);
+      letter-spacing: 0.03em;
+      line-height: 0.95;
+      margin-bottom: 12px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      line-height: 1.55;
+      margin-bottom: 24px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 26px;
+    }
+
+    label {
+      display: block;
+      color: #d3f3ff;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      border: 1px solid rgba(167, 234, 255, 0.32);
+      background: rgba(9, 22, 30, 0.88);
+      border-radius: 12px;
+      color: #e8fbff;
+      font: inherit;
+      margin-bottom: 16px;
+      outline: none;
+      padding: 13px 14px;
+    }
+
+    textarea {
+      min-height: 86px;
+      resize: vertical;
+    }
+
+    button {
+      width: 100%;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #00d4ff, #ff9f43);
+      color: #04121a;
+      cursor: pointer;
+      font-weight: 700;
+      min-height: 50px;
+      padding: 0 20px;
+    }
+
+    .switch,
+    .error {
+      margin-top: 16px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .switch a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .error {
+      color: #ffd0d0;
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <h1>{% if mode == 'register' %}Create Profile{% else %}Welcome Back{% endif %}</h1>
+    <p class="subtitle">
+      {% if mode == 'register' %}
+        Create a ShieldScan profile so your checked websites are saved to your account.
+      {% else %}
+        Log in to scan URLs and review your saved website history.
+      {% endif %}
+    </p>
+
+    <section class="card">
+      <form method="POST">
+        {% if mode == 'register' %}
+          <label for="display_name">Display name</label>
+          <input id="display_name" name="display_name" type="text" placeholder="Your name" required>
+        {% endif %}
+
+        <label for="username">Username</label>
+        <input id="username" name="username" type="text" placeholder="username" required>
+
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" placeholder="password" required>
+
+        {% if mode == 'register' %}
+          <label for="phone">Phone</label>
+          <input id="phone" name="phone" type="text" placeholder="+91...">
+
+          <label for="about">About</label>
+          <textarea id="about" name="about" placeholder="Available for URL reviews"></textarea>
+        {% endif %}
+
+        <button type="submit">{% if mode == 'register' %}Create Account{% else %}Log In{% endif %}</button>
+      </form>
+
+      {% if error %}
+        <p class="error">{{ error }}</p>
+      {% endif %}
+
+      {% if mode == 'register' %}
+        <p class="switch">Already have an account? <a href="/login">Log in</a></p>
+      {% else %}
+        <p class="switch">New here? <a href="/register">Create a profile</a></p>
+        <p class="switch">Security team? <a href="/agent/login">Agent login</a></p>
+      {% endif %}
+    </section>
+  </main>
+</body>
+</html>

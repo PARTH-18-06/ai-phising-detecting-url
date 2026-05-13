@@ -2,3 +2,7 @@ __pycache__/
 *.py[cod]
 .venv/
 server*.log
+scan_results.db
+manual_monitor.db
+data/*.db
+.env
