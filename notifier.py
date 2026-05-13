@@ -20,7 +20,11 @@ def load_env_file():
                 continue
 
             key, value = line.split("=", 1)
-            os.environ.setdefault(key.strip(), value.strip())
+            key = key.strip()
+            value = value.strip()
+
+            if value:
+                os.environ[key] = value
 
 
 load_env_file()
@@ -77,5 +81,11 @@ def send_agent_alert(url, risk, user):
         with urllib.request.urlopen(request, timeout=10) as response:
             return 200 <= response.status < 300
     except Exception as error:
+        response_body = ""
+        if hasattr(error, "read"):
+            response_body = error.read().decode("utf-8", errors="replace")
+
         print(f"Agent phone alert failed: {error}")
+        if response_body:
+            print(f"Twilio response: {response_body}")
         return False
