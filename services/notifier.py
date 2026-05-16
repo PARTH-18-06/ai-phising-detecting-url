@@ -5,7 +5,7 @@ import urllib.request
 
 
 DEFAULT_ALERT_PHONE = "+919680538149"
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ENV_PATH = os.path.join(BASE_DIR, ".env")
 
 

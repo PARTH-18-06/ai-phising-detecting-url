@@ -3,12 +3,13 @@ from flask import Flask, redirect, render_template, request, session, url_for
 import pickle
 import re
 import numpy as np
+from pathlib import Path
 from urllib.parse import urlparse
 from werkzeug.security import check_password_hash, generate_password_hash
-from dataset import TRUSTED
-from feature_extractor import extract_features
-from notifier import send_agent_alert
-from scan_store import (
+from services.dataset import TRUSTED
+from services.feature_extractor import extract_features
+from services.notifier import send_agent_alert
+from services.scan_store import (
     approve_manual_monitor_entry,
     create_agent,
     create_user,
@@ -26,8 +27,11 @@ from scan_store import (
 )
 
 
+BASE_DIR = Path(__file__).resolve().parent
+
 # Load trained model generated from phishing_urls.csv
-model = pickle.load(open("model/phishing_model.pkl", "rb"))
+with open(BASE_DIR / "model" / "phishing_model.pkl", "rb") as model_file:
+    model = pickle.load(model_file)
 
 app = Flask(__name__)
 app.secret_key = "shieldscan-local-dev-secret"

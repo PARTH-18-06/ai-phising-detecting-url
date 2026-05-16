@@ -1,12 +1,17 @@
 import csv
 import os
 import pickle
+import sys
+from pathlib import Path
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 
-from feature_extractor import FEATURE_NAMES, extract_features, features_from_row
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from services.feature_extractor import FEATURE_NAMES, extract_features, features_from_row
 
 
 SAFE_URLS = [
@@ -78,8 +83,7 @@ def add_url_examples(x_values, y_values, sample_weights, urls, target, weight):
 
 
 def main():
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    dataset_path = os.path.join(script_dir, "phishing_urls.csv")
+    dataset_path = PROJECT_ROOT / "data" / "phishing_urls.csv"
 
     x_values, y_values, sample_weights = load_csv_dataset(dataset_path)
 
@@ -107,10 +111,10 @@ def main():
 
     model.fit(x_values, y_values, sample_weight=sample_weights)
 
-    model_dir = os.path.join(script_dir, "model")
+    model_dir = PROJECT_ROOT / "model"
     os.makedirs(model_dir, exist_ok=True)
 
-    model_path = os.path.join(model_dir, "phishing_model.pkl")
+    model_path = model_dir / "phishing_model.pkl"
     with open(model_path, "wb") as model_file:
         pickle.dump(model, model_file)
 

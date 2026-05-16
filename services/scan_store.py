@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
 DATABASE_PATH = DATA_DIR / "shieldscan.db"
 LEGACY_DATABASE_PATH = BASE_DIR / "manual_monitor.db"
