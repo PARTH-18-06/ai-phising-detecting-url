@@ -1,6 +1,7 @@
 from functools import wraps
 from flask import Flask, redirect, render_template, request, session, url_for
 import pickle
+import re
 import numpy as np
 from urllib.parse import urlparse
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -42,6 +43,7 @@ PREDICTION_LABELS = {
 
 MONITOR_MIN_RISK = 40
 MONITOR_MAX_RISK = 60
+PHONE_PATTERN = re.compile(r"^\+?[1-9]\d{9,14}$")
 
 
 def normalize_domain(value):
@@ -68,6 +70,25 @@ def normalize_review_url(value):
         normalized = f"{normalized}?{parsed.query}"
 
     return normalized
+
+
+def normalize_phone_number(value):
+    phone = re.sub(r"[\s()-]", "", value.strip())
+    raw_digits = re.sub(r"\D", "", phone)
+
+    if not phone:
+        return ""
+
+    if raw_digits and len(set(raw_digits[-10:])) == 1:
+        return ""
+
+    if phone.isdigit() and len(phone) == 10:
+        phone = f"+91{phone}"
+
+    if not PHONE_PATTERN.fullmatch(phone):
+        return ""
+
+    return phone
 
 
 TRUSTED_DOMAINS = {normalize_domain(site) for site in TRUSTED}
@@ -157,7 +178,9 @@ def home():
 
         if approved_decision:
             label = approved_decision["manual_result"]
-            prediction = f"{label} (Manual Approved, Risk: {phishing_risk}%)"
+            phishing_risk = round(float(approved_decision["risk"]), 2)
+            scan_status = "agent_approved"
+            prediction = f"{label} (Agent Approved, Risk: {phishing_risk}%)"
         elif needs_manual_review:
             scan_status = "pending_manual_review"
             created_alert = save_manual_monitor_entry(
@@ -178,7 +201,7 @@ def home():
         else:
             prediction = f"{label} (Risk: {phishing_risk}%)"
 
-        save_user_scan(user["id"], url, label, phishing_risk, scan_status)
+        save_user_scan(user["id"], url, normalized_url, label, phishing_risk, scan_status)
 
     return render_template("index.html", prediction=prediction, user=user)
 
@@ -186,16 +209,25 @@ def home():
 @app.route("/register", methods=["GET", "POST"])
 def register():
     error = ""
+    form_values = {}
 
     if request.method == "POST":
         username = request.form["username"].strip().lower()
         password = request.form["password"]
         display_name = request.form["display_name"].strip() or username
-        phone = request.form.get("phone", "").strip()
+        phone = normalize_phone_number(request.form.get("phone", ""))
         about = request.form.get("about", "").strip()
+        form_values = {
+            "username": username,
+            "display_name": display_name,
+            "phone": request.form.get("phone", "").strip(),
+            "about": about,
+        }
 
         if not username or not password:
             error = "Username and password are required."
+        elif not phone:
+            error = "Enter a valid mobile number, for example +919876543210."
         elif get_user_by_username(username):
             error = "That username is already registered."
         else:
@@ -205,17 +237,19 @@ def register():
             session["user_id"] = user["id"]
             return redirect(url_for("home"))
 
-    return render_template("auth.html", mode="register", error=error)
+    return render_template("auth.html", mode="register", error=error, form=form_values)
 
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
     error = ""
+    form_values = {}
 
     if request.method == "POST":
         username = request.form["username"].strip().lower()
         password = request.form["password"]
         user = get_user_by_username(username)
+        form_values = {"username": username}
 
         if user and check_password_hash(user["password_hash"], password):
             session.clear()
@@ -224,7 +258,7 @@ def login():
 
         error = "Invalid username or password."
 
-    return render_template("auth.html", mode="login", error=error)
+    return render_template("auth.html", mode="login", error=error, form=form_values)
 
 
 @app.route("/logout")
@@ -237,19 +271,25 @@ def logout():
 @login_required
 def profile():
     user = current_user()
+    error = ""
 
     if request.method == "POST":
+        phone = normalize_phone_number(request.form.get("phone", ""))
+        if not phone:
+            scans = get_user_scans(user["id"])
+            return render_template("profile.html", user=user, scans=scans, error="Enter a valid mobile number, for example +919876543210.")
+
         update_user_profile(
             user["id"],
             request.form["display_name"].strip() or user["username"],
-            request.form.get("phone", "").strip(),
+            phone,
             request.form.get("about", "").strip(),
         )
         return redirect(url_for("profile"))
 
     scans = get_user_scans(user["id"])
     user = current_user()
-    return render_template("profile.html", user=user, scans=scans)
+    return render_template("profile.html", user=user, scans=scans, error=error)
 
 
 @app.route("/agent/login", methods=["GET", "POST"])
@@ -293,7 +333,7 @@ def agent_monitor():
 @agent_login_required
 def approve_monitor_entry(entry_id):
     manual_result = request.form["manual_result"]
-    approve_manual_monitor_entry(entry_id, manual_result)
+    approve_manual_monitor_entry(entry_id, manual_result, current_agent()["id"])
     return redirect(url_for("agent_monitor"))
 
 

@@ -84,6 +84,78 @@
       padding: 13px 14px;
     }
 
+    .password-field {
+      position: relative;
+      margin-bottom: 16px;
+    }
+
+    .password-field input {
+      margin-bottom: 0;
+      padding-right: 52px;
+    }
+
+    .toggle-password {
+      align-items: center;
+      background: transparent;
+      border: none;
+      color: rgba(211, 243, 255, 0.24);
+      cursor: pointer;
+      display: none;
+      height: 42px;
+      justify-content: center;
+      min-height: 0;
+      padding: 0;
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 42px;
+    }
+
+    .toggle-password svg {
+      height: 22px;
+      pointer-events: none;
+      width: 22px;
+    }
+
+    .password-eye .eye-pupil {
+      display: none;
+    }
+
+    .toggle-password.password-visible .eye-pupil {
+      display: block;
+    }
+
+    .toggle-password.password-visible .eye-lid {
+      display: none;
+    }
+
+    .password-field.has-value .toggle-password {
+      display: inline-flex;
+      pointer-events: auto;
+    }
+
+    .toggle-password:hover {
+      color: rgba(211, 243, 255, 0.5);
+    }
+
+    .toggle-password.blink svg {
+      animation: eye-blink 260ms ease-in-out;
+      transform-origin: center;
+    }
+
+    @keyframes eye-blink {
+      0%,
+      100% {
+        transform: scaleY(1);
+      }
+
+      45%,
+      55% {
+        transform: scaleY(0.12);
+      }
+    }
+
     textarea {
       min-height: 86px;
       resize: vertical;
@@ -133,21 +205,30 @@
       <form method="POST">
         {% if mode == 'register' %}
           <label for="display_name">Display name</label>
-          <input id="display_name" name="display_name" type="text" placeholder="Your name" required>
+          <input id="display_name" name="display_name" type="text" placeholder="Your name" value="{{ form.get('display_name', '') }}" required>
         {% endif %}
 
         <label for="username">Username</label>
-        <input id="username" name="username" type="text" placeholder="username" required>
+        <input id="username" name="username" type="text" placeholder="username" value="{{ form.get('username', '') }}" required>
 
         <label for="password">Password</label>
-        <input id="password" name="password" type="password" placeholder="password" required>
+        <div class="password-field">
+          <input id="password" name="password" type="password" placeholder="password" required>
+          <button class="toggle-password" type="button" data-toggle-password="password" aria-label="Show password" title="Show password">
+            <svg class="password-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"></path>
+              <circle class="eye-pupil" cx="12" cy="12" r="3"></circle>
+              <path class="eye-lid" d="M8 12h8"></path>
+            </svg>
+          </button>
+        </div>
 
         {% if mode == 'register' %}
           <label for="phone">Phone</label>
-          <input id="phone" name="phone" type="text" placeholder="+91...">
+          <input id="phone" name="phone" type="tel" placeholder="+919876543210" value="{{ form.get('phone', '') }}" pattern="(\+?[1-9][0-9]{9,14})" title="Enter a valid mobile number, for example +919876543210" required>
 
           <label for="about">About</label>
-          <textarea id="about" name="about" placeholder="Available for URL reviews"></textarea>
+          <textarea id="about" name="about" placeholder="Available for URL reviews">{{ form.get('about', '') }}</textarea>
         {% endif %}
 
         <button type="submit">{% if mode == 'register' %}Create Account{% else %}Log In{% endif %}</button>
@@ -165,5 +246,45 @@
       {% endif %}
     </section>
   </main>
+  <script>
+    document.querySelectorAll("[data-toggle-password]").forEach((button) => {
+      const input = document.getElementById(button.dataset.togglePassword);
+      const field = button.closest(".password-field");
+
+      const setIconState = (passwordVisible) => {
+        button.classList.toggle("password-visible", passwordVisible);
+      };
+
+      const syncField = () => {
+        field.classList.toggle("has-value", input.value.length > 0);
+        if (!input.value) {
+          input.type = "password";
+          button.setAttribute("aria-label", "Show password");
+          button.setAttribute("title", "Show password");
+        }
+        setIconState(input.type === "text");
+      };
+
+      syncField();
+      input.addEventListener("input", syncField);
+
+      button.addEventListener("click", () => {
+        const visible = input.type === "text";
+        input.type = visible ? "password" : "text";
+        button.setAttribute("aria-label", visible ? "Show password" : "Hide password");
+        button.setAttribute("title", visible ? "Show password" : "Hide password");
+        setIconState(!visible);
+        if (visible) {
+          button.classList.remove("blink");
+          void button.offsetWidth;
+          button.classList.add("blink");
+        }
+      });
+
+      button.addEventListener("animationend", () => {
+        button.classList.remove("blink");
+      });
+    });
+  </script>
 </body>
 </html>
